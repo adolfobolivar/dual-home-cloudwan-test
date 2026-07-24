@@ -1,0 +1,28 @@
+@startuml Use Cases Overview
+left to right direction
+
+actor "Network Operator" as operator
+
+rectangle "dual-home-cloudwan-test" {
+    usecase "UC-001\nVerify old-deploy to current-deploy connectivity" as UC001
+    usecase "UC-002\nVerify current-deploy to future-deploy connectivity" as UC002
+    usecase "UC-003\nCheck dual-home Cloud WAN deployment status" as UC003
+}
+
+operator --> UC001
+operator --> UC002
+operator --> UC003
+
+note right of UC001
+  Traces to FR-001 (Old-Current Connectivity)
+end note
+
+note right of UC002
+  Traces to FR-002 (Current-Future Connectivity)
+end note
+
+note right of UC003
+  Traces to FR-004 (Infrastructure Status Check)
+end note
+
+@enduml
