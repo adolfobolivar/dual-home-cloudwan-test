@@ -48,21 +48,6 @@ flowchart LR
 
 ## Results
 
-Two Global Networks configured:
-<img width="821" height="216" alt="image" src="https://github.com/user-attachments/assets/a1e6c1ed-3f3d-4cda-ae7a-01eff08b65b9" />
-
-Topology diagrams:
-
-core network A:
-<img width="288" height="151" alt="image" src="https://github.com/user-attachments/assets/bb66f89c-f3ee-4f7a-ae3b-c1b3c4c03b3e" />
-
-core network B:
-<img width="354" height="198" alt="image" src="https://github.com/user-attachments/assets/289f9661-8bf5-4be0-851b-709456a37ffc" />
-
-VPC route table:
-<img width="915" height="295" alt="image" src="https://github.com/user-attachments/assets/f8f164dd-9138-44fc-bfd3-ac4eff50d460" />
-
-
 Real output from the real AWS account this project targets — not a description of
 what should happen, what actually happened.
 
@@ -85,6 +70,24 @@ RESULT: FAIL (old -> future), container exit code 1
 The third result is the point of the whole project: `old-deploy` and `future-deploy`
 cannot reach each other, on purpose, because no core network and no route connects
 them.
+
+### AWS Console: two independent Global Networks
+
+Two Global Networks configured — one per core network, matching the 1:1
+relationship AWS enforces (Lesson 1 below):
+
+<img width="821" height="216" alt="Two Global Networks listed in the AWS Network Manager console" src="https://github.com/user-attachments/assets/a1e6c1ed-3f3d-4cda-ae7a-01eff08b65b9" />
+
+Each core network's own topology view, confirming they're separate resources with
+no shared segment or edge:
+
+**Core network A** (`old-deploy` ↔ `current-deploy`):
+
+<img width="288" height="151" alt="Core network A topology diagram in AWS Network Manager" src="https://github.com/user-attachments/assets/bb66f89c-f3ee-4f7a-ae3b-c1b3c4c03b3e" />
+
+**Core network B** (`current-deploy` ↔ `future-deploy`):
+
+<img width="354" height="198" alt="Core network B topology diagram in AWS Network Manager" src="https://github.com/user-attachments/assets/289f9661-8bf5-4be0-851b-709456a37ffc" />
 
 ### Proof: `current-deploy` is attached to two different core networks
 
@@ -137,6 +140,11 @@ Routes:
   (S3 prefix list) -> vpce-0e66520c09f489eee
 # No route to 10.0.0.0/24 (old-deploy) anywhere in this table.
 ```
+
+Same thing, from the AWS Console — `current-deploy`'s route table with both
+`CoreNetworkArn` routes visible side by side:
+
+<img width="915" height="295" alt="current-deploy VPC route table in the AWS Console, showing routes to both core networks" src="https://github.com/user-attachments/assets/f8f164dd-9138-44fc-bfd3-ac4eff50d460" />
 
 `current-deploy`'s route table is the only one with two `CoreNetworkArn` routes,
 targeting two different core networks — everything else in this project (the
