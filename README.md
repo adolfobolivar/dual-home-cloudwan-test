@@ -48,6 +48,21 @@ flowchart LR
 
 ## Results
 
+Two Global Networks configured:
+<img width="821" height="216" alt="image" src="https://github.com/user-attachments/assets/a1e6c1ed-3f3d-4cda-ae7a-01eff08b65b9" />
+
+Topology diagrams:
+
+core network A:
+<img width="288" height="151" alt="image" src="https://github.com/user-attachments/assets/bb66f89c-f3ee-4f7a-ae3b-c1b3c4c03b3e" />
+
+core network B:
+<img width="354" height="198" alt="image" src="https://github.com/user-attachments/assets/289f9661-8bf5-4be0-851b-709456a37ffc" />
+
+VPC route table:
+<img width="915" height="295" alt="image" src="https://github.com/user-attachments/assets/f8f164dd-9138-44fc-bfd3-ac4eff50d460" />
+
+
 Real output from the real AWS account this project targets — not a description of
 what should happen, what actually happened.
 
