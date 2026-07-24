@@ -2,7 +2,7 @@
 
 ## §1 Overview
 
-100% Terraform, hosted on AWS, all resources in `us-east-1`. Three VPCs
+100% Terraform, hosted on AWS, all resources in `us-east-2`. Three VPCs
 (`old-deploy`, `current-deploy`, `future-deploy`) connected by two independent AWS
 Cloud WAN core networks:
 
@@ -59,7 +59,7 @@ No `.tfvars`, no `-var-file`. Every environment root module reads
 | Key | Type | Description |
 |---|---|---|
 | `environment` | string | Environment name (`test`) |
-| `aws_region` | string | `us-east-1` |
+| `aws_region` | string | `us-east-2` |
 | `old_deploy_vpc_cidr` | string | CIDR for the `old-deploy` VPC |
 | `current_deploy_vpc_cidr` | string | CIDR for the `current-deploy` VPC |
 | `future_deploy_vpc_cidr` | string | CIDR for the `future-deploy` VPC |

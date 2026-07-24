@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform per-environment secrets (AWS credentials) — never commit, input.yaml is fine.
+terraform/environments/*/secrets.yaml

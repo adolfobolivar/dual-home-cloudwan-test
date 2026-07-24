@@ -26,7 +26,7 @@ requirement categories apply. The sole actor is the **Network Operator**.
 
 | ID    | Title                  | Constraint                                                                                                     | Category  | Priority | Status |
 |-------|-------------------------|-----------------------------------------------------------------------------------------------------------------|-----------|----------|--------|
-| C-001 | Single Region            | All AWS resources must be provisioned in the `us-east-1` region only.                                          | Technical | High     | Open   |
+| C-001 | Single Region            | All AWS resources must be provisioned in the `us-east-2` region only.                                          | Technical | High     | Open   |
 | C-002 | Cloud WAN Only            | Inter-VPC connectivity must use AWS Cloud WAN exclusively. VPC Peering and Transit Gateway are prohibited.      | Technical | High     | Open   |
 | C-003 | 100% Infrastructure as Code | All infrastructure must be provisioned via Terraform. No manual AWS Management Console changes are permitted, per architecture.md §4.2's CI validation gate (`terraform validate`, `tflint`, `checkov -d .`). | Technical | High     | Open   |
 | C-004 | Single Test Environment  | This phase covers a single `test` environment only. No `prod` environment or second AWS account is in scope.   | Operational | Medium | Open   |
