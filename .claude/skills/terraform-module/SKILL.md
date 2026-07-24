@@ -25,9 +25,15 @@ project has no application layer to implement.
 - Use `.tfvars` files or a `-var-file` flag. This project reads `input.yaml` via
   `yamldecode(file(...))` into `local.input` (architecture.md §5) — don't reintroduce
   the HCL-tfvars pattern.
-- Tag resources individually. Tagging is enforced once, at the AWS provider block, via
-  `default_tags` (architecture.md §5) — a per-resource `tags = {...}` block is
-  redundant and risks drifting from the standard set.
+- Tag the four mandated keys (`Environment`/`Project`/`Owner`/`ManagedBy`) on any
+  individual resource. Those are enforced once, at the AWS provider block, via
+  `default_tags` (architecture.md §5) — repeating them per-resource is redundant and
+  risks drifting from the standard set.
+- Skip the `Name` tag on any resource that accepts tags. Unlike the four mandated
+  keys, `Name` is resource-specific and must be set per-resource in a
+  `tags = { Name = "..." }` block (architecture.md §5) — it does not come from
+  `default_tags` and is easy to forget precisely because the DO-NOT above says not to
+  tag individually; that rule is about the four mandated keys only, never about `Name`.
 - Let two core networks share an ASN, a segment name, or an attachment policy rule.
   Core network A (old-deploy ↔ current-deploy) and core network B (current-deploy ↔
   future-deploy) must stay independent per architecture.md §1–§2 — a shared value is

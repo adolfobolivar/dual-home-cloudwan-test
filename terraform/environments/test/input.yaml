@@ -11,10 +11,13 @@ current_deploy_vpc_cidr: "10.0.1.0/24"
 future_deploy_vpc_cidr: "10.0.2.0/24"
 
 # Core network ASNs — private range 64512-65534, one per core network, never shared
-# (architecture.md §1-§2, requirements.md NFR-001).
+# (architecture.md §1-§2, requirements.md NFR-001). Each value is the start of a
+# 2-ASN range reserved for that core network (AWS rejects a degenerate single-value
+# range) — kept 2 apart so the two ranges never overlap.
 core_network_a_asn: 64512
-core_network_b_asn: 64513
+core_network_b_asn: 64514
 
-# Core network segment names — one per core network, never shared.
-core_network_a_segment: "segment-old-current"
-core_network_b_segment: "segment-current-future"
+# Core network segment names — one per core network, never shared. Cloud WAN
+# requires alphanumeric-only segment names (no hyphens/underscores).
+core_network_a_segment: "SegmentOldCurrent"
+core_network_b_segment: "SegmentCurrentFuture"
