@@ -36,6 +36,15 @@ one more resource with zero sharing between A and B.
 - Each VPC has two subnets: one for deployment/workload resources, one dedicated to
   the Cloud WAN core network ENIs (attachment subnet). These are never the same
   subnet.
+- An `AVAILABLE` VPC attachment does not by itself make traffic flow. Each
+  workload subnet needs its own route table with an explicit route to every peer
+  VPC's CIDR, targeting the core network's ARN (`aws_route`'s `core_network_arn`
+  argument — not an ENI or gateway ID; AWS resolves the real next hop through
+  Cloud WAN). Without it, a VPC's subnets only ever route within their own VPC.
+  `current-deploy`'s workload route table gets two such routes, one per core
+  network — never a single route covering both peers, which would blur the exact
+  isolation boundary this project tests. The attachment subnet needs no such
+  route; nothing is expected to originate from it.
 
 ## §3 Security
 
@@ -109,21 +118,49 @@ across three VPCs' worth of near-identical resources.
 
 ## §6 Connectivity Test Tooling
 
-The bidirectional port-80 checks in UC-001 and UC-002 run on **ECS Fargate**, not EC2:
+The bidirectional port-80 checks in UC-001 and UC-002 run on **ECS Fargate**, not EC2.
+Built and verified end-to-end — `terraform/modules/connectivity_test/` and
+`scripts/run-connectivity-check.sh`.
 
-- One minimal container image (a small HTTP listener — e.g. `python -m http.server 80`
-  or a slim `nginx`) is deployed identically into each VPC's workload subnet (§2). The
-  same image serves as both sides of a check: Fargate keeps a process running for the
-  task's lifetime, so — unlike Lambda, which has no persistent listener — one task can
-  accept the connection the peer VPC's task initiates.
-- Tasks are invoked on demand (`ecs:RunTask`) for the duration of a single check, not
-  left running continuously. This avoids EC2's AMI/patching burden and boot-time
-  latency while keeping cost and blast surface minimal.
+- One minimal container image (`docker/connectivity-test/`, Python stdlib only) is
+  deployed identically into each VPC's workload subnet (§2), selected into one of two
+  modes at `ecs:RunTask` time via a command override: `listen` (a bounded-duration —
+  5 minutes — HTTP server) or `check <ip>` (a single TCP connect attempt, prints
+  PASS/FAIL, exit code 0/1). The same image serves as both sides of a check: Fargate
+  keeps a process running for the task's lifetime, so — unlike Lambda, which has no
+  persistent listener — one task can accept the connection the peer VPC's task
+  initiates.
+- Tasks are invoked on demand for the duration of a single check, not left running
+  continuously — `scripts/run-connectivity-check.sh` starts the listener, runs the
+  check, and stops the listener every time, whether the check passes or fails. This
+  avoids EC2's AMI/patching burden and boot-time latency while keeping cost and blast
+  surface minimal.
 - The ECS task execution role is scoped to only pulling the image and writing logs —
-  no broader IAM grant (§3's least-privilege rule applies here too).
-- Fargate ENIs land in the same workload subnet and security group already defined in
-  §2-§3; the peer-CIDR-only, port-80-only security group rule applies unchanged, no
-  new security exception needed.
+  no broader IAM grant, and no task role at all (§3's least-privilege rule applies
+  here too; the container makes no AWS API calls of its own).
+- **The image lives in a private ECR repository in this region, not ECR Public
+  Gallery.** `public.ecr.aws` is a us-east-1-only service with no regional VPC
+  endpoint, so it's unreachable from these fully private VPCs (no internet
+  gateway/NAT, by design) regardless of any security group or route table
+  configuration. Each VPC therefore has its own set of VPC endpoints
+  (`terraform/modules/network/endpoints.tf`): interface endpoints for `ecr.api`,
+  `ecr.dkr`, and `logs`, plus a free S3 gateway endpoint (ECR stores image layers in
+  S3).
+- **Each workload security group needs two separate 443 egress rules for this to
+  work — one is not enough.** A security-group-referencing rule to the VPC's
+  endpoint security group covers the three *interface* endpoints (they have real
+  ENIs). It does **not** cover the S3 gateway endpoint, which has no ENI or security
+  group at all — it's a route-table/prefix-list mechanism — so a second egress rule
+  targeting the region's S3 prefix list (`data.aws_prefix_list`) is required
+  separately. Missing either one produces the same symptom either way: the pull
+  either fails at auth (`dial tcp <interface-endpoint-ip>:443: i/o timeout`) or fails
+  at the layer download (`dial tcp <s3-ip>:443: i/o timeout`) — both look identical
+  to a routing problem, but were actually a default-deny security group silently
+  dropping traffic that no rule explicitly allowed. Port 80 to the peer VPC (§3)
+  does not cover this at all — it's a completely different traffic path.
 - AWS VPC Reachability Analyzer was considered as a zero-compute alternative but
   rejected for this role: it verifies configured reachability (route tables/SGs/NACLs),
   not an actual data-plane TCP handshake, which is what UC-001/UC-002 require.
+
+Result of the first full run: `old → current` PASS, `current → future` PASS,
+`old → future` FAIL — the isolation boundary this project exists to prove holds.

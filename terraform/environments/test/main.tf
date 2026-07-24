@@ -15,3 +15,9 @@ module "network" {
   core_network_a_segment  = local.input.core_network_a_segment
   core_network_b_segment  = local.input.core_network_b_segment
 }
+
+module "connectivity_test" {
+  source = "../../modules/connectivity_test"
+
+  aws_region = local.input.aws_region
+}
