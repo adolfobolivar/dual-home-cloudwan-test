@@ -41,3 +41,11 @@ output "vpc_attachment_ids" {
     future_deploy_to_b  = aws_networkmanager_vpc_attachment.future_deploy_to_b.id
   }
 }
+
+output "workload_route_table_ids" {
+  value = {
+    old_deploy     = aws_route_table.old_deploy_workload.id
+    current_deploy = aws_route_table.current_deploy_workload.id
+    future_deploy  = aws_route_table.future_deploy_workload.id
+  }
+}

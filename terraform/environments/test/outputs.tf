@@ -20,3 +20,23 @@ output "core_network_ids" {
 output "vpc_attachment_ids" {
   value = module.network.vpc_attachment_ids
 }
+
+output "workload_route_table_ids" {
+  value = module.network.workload_route_table_ids
+}
+
+output "ecr_repository_url" {
+  value = module.connectivity_test.ecr_repository_url
+}
+
+output "ecs_cluster_name" {
+  value = module.connectivity_test.ecs_cluster_name
+}
+
+output "task_definition_family" {
+  value = module.connectivity_test.task_definition_family
+}
+
+output "log_group_name" {
+  value = module.connectivity_test.log_group_name
+}

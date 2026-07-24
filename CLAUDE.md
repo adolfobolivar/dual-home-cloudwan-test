@@ -79,6 +79,28 @@ terraform apply
 before evaluating any locals, so it can't read `secrets.yaml` the way the `provider "aws"` block does — the two
 `AWS_*` environment variables above are required for every `init`/`plan`/`apply`, not just the first one.
 
+### Connectivity-test image (one-time, or after editing `docker/connectivity-test/`)
+
+```bash
+cd docker/connectivity-test
+aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-2.amazonaws.com
+docker build --platform linux/amd64 -t <ecr_repository_url_output>:latest .
+docker push <ecr_repository_url_output>:latest
+```
+
+Must build for `linux/amd64` explicitly (Fargate's runtime), even on Apple Silicon. The image must live in a
+private ECR repo in this region — ECR Public Gallery is unreachable from these fully private VPCs (see
+`architecture.md` §6).
+
+### Run a connectivity check
+
+```bash
+scripts/run-connectivity-check.sh <source: old|current|future> <target: old|current|future>
+```
+
+Starts a listener task in `<target>`, a check task in `<source>`, reports PASS/FAIL, stops the listener — nothing
+is left running afterward either way.
+
 ---
 
 ## 🧪 Testing and Quality Commands
@@ -95,9 +117,10 @@ checkov -d .
 ### Connectivity and Status Checks (per `docs/guidelines/testing.md`)
 
 - Validate status of each VPC route table, VPC attachment, and core network.
-- Bi-directional TCP port-80 connectivity check between `old-deploy` and `current-deploy` VPCs (UC-001).
-- Bi-directional TCP port-80 connectivity check between `current-deploy` and `future-deploy` VPCs (UC-002).
-- Confirm no route exists between `old-deploy` and `future-deploy` (isolation check, UC-003).
+- `scripts/run-connectivity-check.sh old current` — must PASS (UC-001).
+- `scripts/run-connectivity-check.sh current future` — must PASS (UC-002).
+- `scripts/run-connectivity-check.sh old future` — must FAIL (isolation check, UC-003). A PASS here means the
+  isolation boundary broke.
 
 ---
 
@@ -119,6 +142,9 @@ checkov -d .
 - **Attachment acceptance:** automated via a tag-based attachment policy rule (`architecture.md` §2) — never manual,
   never wide open.
 - **Security:** Security groups scoped to the peer VPC's CIDR on port 80 only, never `0.0.0.0/0`. No IAM
-  role/policy with a wildcard resource or action grant.
+  role/policy with a wildcard resource or action grant. Egress to VPC interface endpoints needs a
+  security-group-referencing rule; egress to the S3 gateway endpoint needs a *separate*, prefix-list-based rule —
+  the gateway endpoint has no ENI/SG of its own, so the interface-endpoint rule doesn't cover it (`architecture.md`
+  §6).
 - **CI gate:** `terraform validate`, `tflint`, and `checkov -d .` must all pass before `terraform apply` — this is a
   "No Pass, No Deploy" rule, not optional cleanup.
