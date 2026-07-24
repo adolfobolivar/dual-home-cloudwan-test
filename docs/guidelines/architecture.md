@@ -30,6 +30,17 @@ one more resource with zero sharing between A and B.
   `core_network_a_asn`/`core_network_b_asn` are each the start of a `[asn, asn+1]`
   range the module reserves; keep them far enough apart that the two ranges never
   overlap.
+- **Never set `create_base_policy = true` on `aws_networkmanager_core_network`.**
+  It auto-generates a base policy using the *full* default ASN range
+  (64512-65534) and immediately assigns an edge an ASN from it — in testing, that
+  auto-assigned ASN was **64512 for both core networks, every time** (deterministic,
+  not random). If the real policy's narrower range then excludes that already-assigned
+  ASN, applying it fails with `INVALID_ASN_UPDATE: ASNs already in use cannot be
+  removed`. Worse: "fixing" this by widening the real policy's range to include 64512
+  risks both core networks ending up with the *same* ASN — a direct isolation
+  violation. Instead, omit `create_base_policy` entirely (leave it at its default,
+  `false`) so this project's own policy is the first one ever applied to the core
+  network, with no prior assignment to conflict with.
 - Each core network's policy document defines an attachment policy rule that
   auto-accepts VPC attachments carrying a specific tag (e.g. `cloudwan-segment =
   <segment-name>`), rather than requiring manual acceptance.
@@ -76,6 +87,15 @@ time, not a one-time setup step.
 
 Every change to `terraform/` must pass, in order: `terraform validate`, `tflint`,
 `checkov -d .`. No `terraform apply` runs without these passing first.
+
+### §4.3 Provisioning Time
+
+Cloud WAN resources are slow, not bootstrap-style seconds: each core network policy
+attachment (§2) took ~4-5 minutes, and each VPC attachment took another ~4 minutes,
+in testing. A full `apply` from a clean account is a **15-20+ minute affair**. Run
+it in the background with a completion check (e.g. poll the log for `Apply
+complete`/`Error:`), not by watching a terminal — and budget for it when planning a
+reproduction, not just when planning the first build.
 
 ## §5 Input Variables
 
