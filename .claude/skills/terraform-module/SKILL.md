@@ -61,6 +61,13 @@ Confirm both exist before scaffolding a new module under `terraform/modules/`; i
 don't, that's a separate task, out of scope for $ARGUMENTS unless the user is
 explicitly asking for the bootstrap itself.
 
+**Backend credentials are separate from provider credentials.** The `backend "s3" {}`
+block is resolved before any locals/variables, so it cannot read `secrets.yaml` —
+export `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (matching `secrets.yaml`) as
+environment variables before running `terraform init`/`plan`/`apply` in either
+`terraform/bootstrap/test/` or `terraform/environments/test/` (architecture.md §4.1).
+Required every invocation, not just the first.
+
 ## Workflow
 
 1. Read `docs/guidelines/architecture.md` in full — §1 for the two-core-network

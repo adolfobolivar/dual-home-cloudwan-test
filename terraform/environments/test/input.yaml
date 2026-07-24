@@ -1,9 +1,20 @@
 # terraform/environments/test/input.yaml
 # Non-secret config for the `test` environment (architecture.md §5).
-#
-# VPC CIDR / ASN / segment keys are added here once the CloudWAN network module
-# itself is scaffolded (out of scope for this pass) — this file only needs enough
-# to run `terraform init`/`terraform validate` against an empty root module today.
 
 environment: "test"
 aws_region: "us-east-2"
+
+# VPC CIDRs — non-overlapping /24s, each split into workload + Cloud WAN attachment
+# subnets by the network module (architecture.md §2).
+old_deploy_vpc_cidr: "10.0.0.0/24"
+current_deploy_vpc_cidr: "10.0.1.0/24"
+future_deploy_vpc_cidr: "10.0.2.0/24"
+
+# Core network ASNs — private range 64512-65534, one per core network, never shared
+# (architecture.md §1-§2, requirements.md NFR-001).
+core_network_a_asn: 64512
+core_network_b_asn: 64513
+
+# Core network segment names — one per core network, never shared.
+core_network_a_segment: "segment-old-current"
+core_network_b_segment: "segment-current-future"

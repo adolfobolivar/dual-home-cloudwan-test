@@ -30,7 +30,7 @@ affect core network B, and vice versa.
 - Security groups on the workload subnet allow inbound/outbound TCP port 80 from the
   peer VPC's CIDR only (not `0.0.0.0/0`).
 - No IAM roles beyond what Cloud WAN's service-linked role and the connectivity test
-  tool require — this project runs no other compute.
+  tool (§6) require — this project runs no other compute.
 
 ## §4 Terraform Conventions
 
@@ -42,6 +42,14 @@ blocked) and one DynamoDB lock table for the `test` environment, provisioned onc
 it). `terraform/environments/test/` initializes against that backend via
 `terraform init -backend-config=backend.hcl`. Never a local `.tfstate` file for the
 environment root module.
+
+**Backend credentials are separate from provider credentials.** Terraform resolves a
+`backend "s3" {}` block before evaluating any locals or variables, so it cannot read
+`secrets.yaml` the way the `provider "aws"` block does. Every `terraform init`/`plan`/
+`apply` in `terraform/bootstrap/test/` or `terraform/environments/test/` needs
+`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (matching `secrets.yaml`) exported as
+environment variables first — an AWS CLI profile works too. This is required every
+time, not a one-time setup step.
 
 ### §4.2 CI Validation
 
@@ -77,3 +85,24 @@ module is scaffolded.
 Tagging: every resource gets `Environment`, `Project`
 (`dual-home-cloudwan-test`), `Owner`, and `ManagedBy` (`Terraform`) tags via the AWS
 provider's `default_tags` block — never a per-resource `tags = {...}` block.
+
+## §6 Connectivity Test Tooling
+
+The bidirectional port-80 checks in UC-001 and UC-002 run on **ECS Fargate**, not EC2:
+
+- One minimal container image (a small HTTP listener — e.g. `python -m http.server 80`
+  or a slim `nginx`) is deployed identically into each VPC's workload subnet (§2). The
+  same image serves as both sides of a check: Fargate keeps a process running for the
+  task's lifetime, so — unlike Lambda, which has no persistent listener — one task can
+  accept the connection the peer VPC's task initiates.
+- Tasks are invoked on demand (`ecs:RunTask`) for the duration of a single check, not
+  left running continuously. This avoids EC2's AMI/patching burden and boot-time
+  latency while keeping cost and blast surface minimal.
+- The ECS task execution role is scoped to only pulling the image and writing logs —
+  no broader IAM grant (§3's least-privilege rule applies here too).
+- Fargate ENIs land in the same workload subnet and security group already defined in
+  §2-§3; the peer-CIDR-only, port-80-only security group rule applies unchanged, no
+  new security exception needed.
+- AWS VPC Reachability Analyzer was considered as a zero-compute alternative but
+  rejected for this role: it verifies configured reachability (route tables/SGs/NACLs),
+  not an actual data-plane TCP handshake, which is what UC-001/UC-002 require.
