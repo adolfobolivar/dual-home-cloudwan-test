@@ -1,8 +1,7 @@
 # terraform/environments/test/providers.tf
 #
-# Root module for the `test` environment. No network resources yet — the CloudWAN
-# module (terraform/modules/) is out of scope for this pass; this file exists so
-# `terraform init` succeeds once terraform/bootstrap/test/ has been applied.
+# Root module for the `test` environment. Provider/backend configuration; the
+# network resources themselves are wired in via main.tf (the network module).
 
 terraform {
   required_version = ">= 1.5"

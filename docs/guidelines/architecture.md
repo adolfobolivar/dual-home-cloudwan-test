@@ -14,10 +14,22 @@ Cloud WAN core networks:
 change, route propagation issue, or attachment failure in core network A cannot
 affect core network B, and vice versa.
 
+Each core network has its own **AWS Network Manager global network** — a global
+network holds exactly one core network (confirmed against AWS's docs and
+`CreateCoreNetwork`'s own validation error after trying to put both on one:
+"Global Network ID is already associated with another core network"), so two core
+networks were never going to share a global network. Two global networks is simply
+what that 1:1 relationship requires, and it reinforces the same independence goal —
+one more resource with zero sharing between A and B.
+
 ## §2 Network Design
 
-- Each core network gets its own ASN (from the private range 64512–65534) and its own
-  Cloud WAN segment name — no sharing across core networks.
+- Each core network gets its own 2-ASN range (from the private range 64512–65534) and
+  its own Cloud WAN segment name — no sharing across core networks. AWS rejects a
+  degenerate single-value ASN range (`INVALID_ASN_RANGE`), so `input.yaml`'s
+  `core_network_a_asn`/`core_network_b_asn` are each the start of a `[asn, asn+1]`
+  range the module reserves; keep them far enough apart that the two ranges never
+  overlap.
 - Each core network's policy document defines an attachment policy rule that
   auto-accepts VPC attachments carrying a specific tag (e.g. `cloudwan-segment =
   <segment-name>`), rather than requiring manual acceptance.
@@ -73,8 +85,8 @@ No `.tfvars`, no `-var-file`. Every environment root module reads
 | `future_deploy_vpc_cidr` | string | CIDR for the `future-deploy` VPC |
 | `core_network_a_asn` | number | ASN for the old↔current core network |
 | `core_network_b_asn` | number | ASN for the current↔future core network |
-| `core_network_a_segment` | string | Segment name for core network A |
-| `core_network_b_segment` | string | Segment name for core network B |
+| `core_network_a_segment` | string | Segment name for core network A (alphanumeric only — Cloud WAN rejects hyphens/underscores) |
+| `core_network_b_segment` | string | Segment name for core network B (alphanumeric only — Cloud WAN rejects hyphens/underscores) |
 | `state_bucket_name` | string | S3 bucket name for remote state (bootstrap only) |
 | `lock_table_name` | string | DynamoDB lock table name (bootstrap only) |
 
@@ -84,7 +96,16 @@ module is scaffolded.
 
 Tagging: every resource gets `Environment`, `Project`
 (`dual-home-cloudwan-test`), `Owner`, and `ManagedBy` (`Terraform`) tags via the AWS
-provider's `default_tags` block — never a per-resource `tags = {...}` block.
+provider's `default_tags` block — never a per-resource `tags = {...}` block **for
+those four**.
+
+**`Name` is the one required per-resource tag.** It is resource-specific by
+definition (e.g. `old-deploy-vpc`, `current-deploy-workload-sg`), so it cannot come
+from `default_tags` — every resource that accepts tags sets its own `Name` in a
+`tags = { Name = "..." }` block (merged automatically with the four `default_tags`
+values, not a replacement for them). A resource missing `Name` is a defect, not a
+style nit — it's how resources stay identifiable in the AWS Console/CLI output
+across three VPCs' worth of near-identical resources.
 
 ## §6 Connectivity Test Tooling
 

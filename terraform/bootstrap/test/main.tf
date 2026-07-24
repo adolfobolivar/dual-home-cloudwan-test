@@ -42,6 +42,10 @@ provider "aws" {
 resource "aws_s3_bucket" "terraform_state" {
   bucket = local.input.state_bucket_name
 
+  tags = {
+    Name = local.input.state_bucket_name
+  }
+
   lifecycle {
     prevent_destroy = true
   }
@@ -83,6 +87,10 @@ resource "aws_dynamodb_table" "terraform_lock" {
   attribute {
     name = "LockID"
     type = "S"
+  }
+
+  tags = {
+    Name = local.input.lock_table_name
   }
 
   lifecycle {
