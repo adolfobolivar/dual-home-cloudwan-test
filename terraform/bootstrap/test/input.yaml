@@ -1,0 +1,13 @@
+# terraform/bootstrap/test/input.yaml
+# Non-sensitive config for bootstrapping the `test` environment's Terraform
+# remote-state backend (architecture.md §4.1). Committed — nothing here is a secret.
+#
+# state_bucket_name must be globally unique across ALL of S3 (not just this account) —
+# suffixed with the date this name was chosen (YYYYMMDD) to make a collision unlikely.
+# If `terraform apply` fails with a "bucket already exists" error, change the suffix
+# (e.g. append your account ID too) and retry.
+
+environment: "test"
+aws_region: "us-east-2"
+state_bucket_name: "dual-home-cloudwan-test-tfstate-20260723"
+lock_table_name: "dual-home-cloudwan-test-tfstate-lock"

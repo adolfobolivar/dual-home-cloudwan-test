@@ -1,0 +1,9 @@
+# terraform/environments/test/input.yaml
+# Non-secret config for the `test` environment (architecture.md §5).
+#
+# VPC CIDR / ASN / segment keys are added here once the CloudWAN network module
+# itself is scaffolded (out of scope for this pass) — this file only needs enough
+# to run `terraform init`/`terraform validate` against an empty root module today.
+
+environment: "test"
+aws_region: "us-east-2"
